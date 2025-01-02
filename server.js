@@ -1,15 +1,19 @@
 const express = require("express");
 const WebSocket = require("ws");
 const cors = require('cors');  // Importa CORS
+const path = require("path");  // Para servir archivos estáticos en producción
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;  // Usa el puerto de producción si está disponible
 
 // Middleware para procesar el JSON
 app.use(express.json());
 
 // Permite solicitudes desde cualquier origen (si deseas permitir CORS globalmente)
 app.use(cors());  // Agrega el middleware CORS
+
+// Servir archivos estáticos desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Crear un servidor WebSocket
 const wss = new WebSocket.Server({ noServer: true });
