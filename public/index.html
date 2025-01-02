@@ -3,7 +3,7 @@ const path = require("path");
 const WebSocket = require("ws");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;  // Usar el puerto de Render (si está disponible)
 
 // Middleware para procesar el JSON
 app.use(express.json());
@@ -64,7 +64,7 @@ function createRoom() {
     return roomCode;
 }
 
-// Ruta para crear una nueva sala (para pruebas)
+// Ruta para crear una nueva sala
 app.post("/create-room", (req, res) => {
     const roomCode = createRoom();
     res.json({ success: true, roomCode: roomCode });
@@ -81,3 +81,4 @@ app.server.on("upgrade", (request, socket, head) => {
         wss.emit("connection", ws, request);
     });
 });
+
