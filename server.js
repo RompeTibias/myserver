@@ -25,8 +25,10 @@ app.post('/createRoom', (req, res) => {
 
 app.post('/join', (req, res) => {
     const { roomCode, playerName } = req.body;
+    console.log(`Intentando unir a la sala: ${roomCode} con el jugador: ${playerName}`);
 
     if (!roomCode || !playerName) {
+        console.error('Código de sala o nombre de jugador faltante');
         return res.json({ success: false, message: 'Código de sala o nombre de jugador faltante' });
     }
 
@@ -49,15 +51,17 @@ app.post('/join', (req, res) => {
 
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
+        console.error('Código de sala no válido');
         res.json({ success: false, message: 'Código de sala no válido' });
     }
 });
 
 app.post('/endGame', (req, res) => {
     const { roomCode } = req.body;
+    console.log(`Intentando terminar el juego en la sala: ${roomCode}`);
 
     if (!roomCode) {
-        console.error('Error: Código de sala no proporcionado');
+        console.error('Código de sala no proporcionado');
         return res.json({ success: false, message: 'Código de sala no proporcionado' });
     }
 
@@ -66,6 +70,7 @@ app.post('/endGame', (req, res) => {
         console.log(`Sala ${roomCode} liberada`);
         res.json({ success: true, message: 'Sala liberada' });
     } else {
+        console.error('La sala no existe');
         res.json({ success: false, message: 'La sala no existe' });
     }
 });
