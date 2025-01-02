@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unirse a la partida</title>
+</head>
+<body>
+    <h1>Unirse a la partida</h1>
+    <form id="joinForm">
+        <label for="roomCode">Código de Sala:</label>
+        <input type="text" id="roomCode" name="roomCode" required><br><br>
+        
+        <label for="playerName">Nombre del Jugador:</label>
+        <input type="text" id="playerName" name="playerName" required><br><br>
+        
+        <button type="submit">Unirse</button>
+    </form>
+
+    <script>
+        document.getElementById("joinForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            const roomCode = document.getElementById("roomCode").value;
+            const playerName = document.getElementById("playerName").value;
+
+            // Enviar los datos al servidor (backend)
+            fetch("https://myserver-fjs8.onrender.com/join", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    roomCode: roomCode,
+                    playerName: playerName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("¡Has ingresado a la sala!");
+                } else {
+                    alert("Error al unirse a la sala.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        });
+    </script>
+</body>
+</html>
