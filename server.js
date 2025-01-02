@@ -78,6 +78,17 @@ function createRoom() {
     return roomCode;
 }
 
+// Servidor: Después de crear la sala
+wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+        const response = JSON.stringify({
+            action: "room-created",
+            roomCode: roomCode
+        });
+        console.log("Enviando mensaje a cliente: ", response);  // Log para ver lo que se envía
+        client.send(response);
+    }
+});
 
 
 
