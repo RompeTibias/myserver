@@ -1,11 +1,15 @@
 const express = require("express");
 const WebSocket = require("ws");
+const cors = require('cors');  // Importa CORS
 
 const app = express();
 const port = 3000;
 
 // Middleware para procesar el JSON
 app.use(express.json());
+
+// Permite solicitudes desde cualquier origen (si deseas permitir CORS globalmente)
+app.use(cors());  // Agrega el middleware CORS
 
 // Crear un servidor WebSocket
 const wss = new WebSocket.Server({ noServer: true });
