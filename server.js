@@ -1,9 +1,13 @@
 const express = require('express');
+const WebSocket = require('ws');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.static('public'));  // Carpeta donde está tu HTML
+// Crear el servidor HTTP
+const server = require('http').createServer(app);
+
+// Crear un servidor WebSocket
+const wss = new WebSocket.Server({ server });
 
 // Almacenar salas (clave: código de sala, valor: lista de jugadores)
 let rooms = {};
@@ -24,6 +28,18 @@ app.post('/join', (req, res) => {
     if (rooms[roomCode]) {
         rooms[roomCode].players.push(playerName);  // Añadir jugador a la sala
         console.log(`${playerName} se unió a la sala ${roomCode}`);
+        
+        // Notificar a todos los clientes conectados (Unity) sobre el nuevo jugador
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'newPlayer',
+                    playerName: playerName,
+                    roomCode: roomCode
+                }));
+            }
+        });
+
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
         res.json({ success: false, message: 'Código de sala no válido' });
@@ -44,7 +60,25 @@ app.post('/endGame', (req, res) => {
     }
 });
 
+// Conexión WebSocket para Unity
+wss.on('connection', (ws) => {
+    console.log('Un cliente (Unity) se ha conectado');
+
+    // Enviar un mensaje de bienvenida cuando Unity se conecta
+    ws.send(JSON.stringify({ message: 'Conexión establecida con el servidor' }));
+
+    // Manejar mensajes entrantes desde Unity (por ejemplo, cuando Unity se conecta)
+    ws.on('message', (message) => {
+        console.log('Mensaje recibido de Unity:', message);
+    });
+
+    // Manejar desconexión de WebSocket
+    ws.on('close', () => {
+        console.log('Un cliente (Unity) se ha desconectado');
+    });
+});
+
 // Iniciar el servidor
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });
