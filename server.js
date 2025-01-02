@@ -1,15 +1,15 @@
 const express = require("express");
 const WebSocket = require("ws");
-const path = require("path");
+const cors = require('cors');  // Importa CORS
 
 const app = express();
-const port = process.env.PORT || 3000; // Usamos un puerto definido por el entorno o el 3000
+const port = 3000;
 
-// Middleware para servir archivos estáticos desde la carpeta 'public'
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Middleware para procesar JSON
+// Middleware para procesar el JSON
 app.use(express.json());
+
+// Permite solicitudes desde cualquier origen (si deseas permitir CORS globalmente)
+app.use(cors());  // Agrega el middleware CORS
 
 // Crear un servidor WebSocket
 const wss = new WebSocket.Server({ noServer: true });
@@ -17,19 +17,11 @@ const wss = new WebSocket.Server({ noServer: true });
 // Estructura para almacenar salas y jugadores
 let rooms = {};
 
-// Ruta para crear una nueva sala
-app.post("/create-room", (req, res) => {
-    const roomCode = Math.random().toString(36).substring(7); // Genera un código aleatorio para la sala
-    rooms[roomCode] = { players: [] }; // Crea la sala
-    console.log(`Sala creada con código: ${roomCode}`);
-    res.json({ success: true, roomCode }); // Devuelve el código de la sala al cliente
-});
-
-// Ruta para que un jugador se una a una sala
+// Ruta para unirse a una sala
 app.post("/join", (req, res) => {
     const { roomCode, playerName } = req.body;
     
-    // Verifica si la sala existe
+    // Verificar si la sala existe
     if (!rooms[roomCode]) {
         return res.status(400).json({ success: false, message: "Código de sala no válido" });
     }
@@ -37,27 +29,40 @@ app.post("/join", (req, res) => {
     // Añadir al jugador a la sala
     rooms[roomCode].players.push(playerName);
 
-    // Notificar a todos los jugadores en la sala (puedes personalizar este comportamiento)
-    wss.clients.forEach((client) => {
-        if (client.roomCode === roomCode && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ playerName, message: "se unió a la sala" }));
-        }
-    });
-
-    // Responde positivamente al jugador que se unió
-    res.json({ success: true, roomCode, playerName });
+    // Enviar una respuesta positiva al cliente
+    res.json({ success: true, roomCode: roomCode, playerName: playerName });
 });
 
-// Configuración de WebSocket
+// Cuando un cliente se conecta a WebSocket
 wss.on("connection", (ws) => {
     ws.on("message", (message) => {
-        console.log("Mensaje recibido:", message);
-        // Aquí podrías manejar mensajes entre jugadores, por ejemplo:
-        // Enviar un mensaje a todos los jugadores en la misma sala
+        console.log("Recibido:", message);
+        
+        // Aquí puedes manejar el mensaje recibido y transmitirlo a otros jugadores
+        // Ejemplo de enviar el mensaje a todos los clientes conectados:
+        wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
     });
 
-    // Enviar un mensaje cuando la conexión WebSocket se abre
-    ws.send("Conexión WebSocket establecida.");
+    // Enviar un mensaje cuando la conexión se establece
+    ws.send("Conexión establecida con el servidor");
+});
+
+// Crear una sala con un código aleatorio
+function createRoom() {
+    const roomCode = Math.random().toString(36).substring(7);  // Crear un código de sala aleatorio
+    rooms[roomCode] = { players: [] };  // Crear una sala vacía
+    console.log("Sala creada con código:", roomCode);
+    return roomCode;
+}
+
+// Ruta para crear una nueva sala
+app.post("/create-room", (req, res) => {
+    const roomCode = createRoom();
+    res.json({ success: true, roomCode: roomCode });
 });
 
 // Habilitar WebSocket en el servidor Express
@@ -65,10 +70,8 @@ app.server = app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
 });
 
-// Esta es la función que maneja el proceso de 'upgrade' de WebSocket
 app.server.on("upgrade", (request, socket, head) => {
     wss.handleUpgrade(request, socket, head, (ws) => {
-        ws.roomCode = null;  // Inicializa la sala del cliente como null
         wss.emit("connection", ws, request);
     });
 });
