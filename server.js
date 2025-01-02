@@ -3,6 +3,9 @@ const WebSocket = require('ws');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Middleware para parsear JSON
+app.use(express.json());
+
 // Crear el servidor HTTP
 const server = require('http').createServer(app);
 
@@ -11,6 +14,11 @@ const wss = new WebSocket.Server({ server });
 
 // Almacenar salas (clave: código de sala, valor: lista de jugadores)
 let rooms = {};
+
+// Ruta para la raíz (opcional)
+app.get('/', (req, res) => {
+    res.send('Servidor funcionando correctamente');
+});
 
 // Crear una nueva sala (solo Unity puede hacer esto)
 app.post('/createRoom', (req, res) => {
@@ -82,3 +90,4 @@ wss.on('connection', (ws) => {
 server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });
+
