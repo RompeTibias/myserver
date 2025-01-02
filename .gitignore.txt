@@ -1,0 +1,25 @@
+# Node.js
+node_modules/
+
+# Archivos de configuración de sistema
+.DS_Store        # MacOS
+Thumbs.db        # Windows
+
+# Archivos de log
+npm-debug.log
+yarn-error.log
+
+# Entorno de desarrollo
+.idea/
+.vscode/
+
+# Archivos de Unity (Si estás trabajando con Unity en el mismo repositorio)
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+UserSettings/
+
+# Archivos de OS
+Desktop.ini
