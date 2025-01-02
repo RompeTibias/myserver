@@ -4,28 +4,24 @@ const cors = require('cors');
 const path = require("path");
 
 const app = express();
-const port = process.env.PORT || 3000; // Puerto para producción o local
+const port = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Crear un servidor WebSocket
-const wss = new WebSocket.Server({ noServer: true }); // Asegúrate de definir 'wss' antes de usarlo
+const wss = new WebSocket.Server({ noServer: true });
 
-// Estructura para almacenar salas y jugadores
 let rooms = {};
 
 // Manejo de conexiones WebSocket
 wss.on("connection", (ws) => {
     ws.on("message", (message) => {
         console.log("Recibido:", message);
-        wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
+
+        // Responder con "mensaje recibido"
+        const response = JSON.stringify({ message: "mensaje recibido" });
+        ws.send(response);
     });
 
     ws.send("Conexión establecida con el servidor");
@@ -37,7 +33,6 @@ function createRoom() {
     rooms[roomCode] = { players: [] };
     console.log("Sala creada con código:", roomCode);
 
-    // Notificar a los clientes conectados
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
@@ -56,7 +51,6 @@ app.post("/create-room", (req, res) => {
     res.json({ success: true, roomCode: roomCode });
 });
 
-// Habilitar WebSocket en el servidor Express
 app.server = app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
 });
