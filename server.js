@@ -56,10 +56,19 @@ wss.on("connection", (ws) => {
 });
 
 // Crear una sala con un código aleatorio
+// Crear una sala con un código aleatorio
 function createRoom() {
     const roomCode = Math.random().toString(36).substring(7);  // Crear un código de sala aleatorio
     rooms[roomCode] = { players: [] };  // Crear una sala vacía
     console.log("Sala creada con código:", roomCode);
+
+    // Aquí notificamos a todos los clientes WebSocket sobre la creación de la sala
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ action: "room-created", roomCode }));
+        }
+    });
+
     return roomCode;
 }
 
