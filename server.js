@@ -47,15 +47,18 @@ app.post('/join', (req, res) => {
         console.log(`${playerName} se unió a la sala ${roomCode}`);
 
         // Notificar a todos los clientes conectados (Unity) sobre el nuevo jugador
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'newPlayer',
-                    playerName: playerName,
-                    roomCode: roomCode
-                }));
-            }
+wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+        const message = JSON.stringify({
+            type: 'newPlayer',
+            playerName: playerName,
+            roomCode: roomCode
         });
+        console.log("Enviando mensaje a Unity:", message);
+        client.send(message);
+    }
+});
+
 
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
