@@ -1,62 +1,56 @@
-const express = require("express");
-const WebSocket = require("ws");
-const cors = require('cors');
-const path = require("path");
-
+const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));  // Carpeta donde está tu HTML
 
-const wss = new WebSocket.Server({ noServer: true });
-
+// Almacenar salas (clave: código de sala, valor: lista de jugadores)
 let rooms = {};
 
-// Manejo de conexiones WebSocket
-wss.on("connection", (ws) => {
-    ws.on("message", (message) => {
-        console.log("Recibido:", message);
-
-        // Responder con "mensaje recibido"
-        const response = JSON.stringify({ message: "mensaje recibido" });
-        ws.send(response);
-    });
-
-    ws.send("Conexión establecida con el servidor");
+// Crear una nueva sala
+app.post('/createRoom', (req, res) => {
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();  // Generar un código aleatorio para la sala
+    rooms[roomCode] = { players: [] };  // Inicializar la sala
+    res.json({ roomCode });
 });
 
-// Crear una sala con un código aleatorio
-function createRoom() {
-    const roomCode = Math.random().toString(36).substring(7);
-    rooms[roomCode] = { players: [] };
-    console.log("Sala creada con código:", roomCode);
-
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                action: "room-created",
-                roomCode: roomCode,
-            }));
+// Unirse a una sala
+app.post('/join', (req, res) => {
+    const { roomCode, playerName } = req.body;
+    
+    // Si la sala existe y tiene espacio
+    if (rooms[roomCode]) {
+        if (rooms[roomCode].players.length < 4) {  // Limite de jugadores en la sala (por ejemplo, 4)
+            rooms[roomCode].players.push(playerName);
+            res.json({ success: true, message: 'Unido a la sala' });
+        } else {
+            res.json({ success: false, message: 'La sala está llena' });
         }
-    });
-
-    return roomCode;
-}
-
-// Ruta para crear sala
-app.post("/create-room", (req, res) => {
-    const roomCode = createRoom();
-    res.json({ success: true, roomCode: roomCode });
+    } else {
+        res.json({ success: false, message: 'Código de sala no válido' });
+    }
 });
 
-app.server = app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}`);
+// Liberar una sala después de la partida
+app.post('/endGame', (req, res) => {
+    const { roomCode } = req.body;
+
+    // Eliminar la sala del registro
+    if (rooms[roomCode]) {
+        delete rooms[roomCode];
+        res.json({ success: true, message: 'Sala liberada' });
+    } else {
+        res.json({ success: false, message: 'La sala no existe' });
+    }
 });
 
-app.server.on("upgrade", (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-    });
+// Obtener el estado de las salas
+app.get('/rooms', (req, res) => {
+    res.json(rooms);
+});
+
+// Iniciar el servidor
+app.listen(port, () => {
+    console.log(`Servidor escuchando en http://localhost:${port}`);
 });
