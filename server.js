@@ -16,15 +16,10 @@ let rooms = {};
 // Ruta para unirse a una sala
 app.post("/join", (req, res) => {
     const { roomCode, playerName } = req.body;
-    
+
     // Verificar si la sala existe
     if (!rooms[roomCode]) {
         return res.status(400).json({ success: false, message: "Código de sala no válido" });
-    }
-
-    // Verificar si el jugador ya está en la sala
-    if (rooms[roomCode].players.includes(playerName)) {
-        return res.status(400).json({ success: false, message: "El jugador ya está en esta sala." });
     }
 
     // Añadir al jugador a la sala
@@ -32,17 +27,26 @@ app.post("/join", (req, res) => {
 
     // Enviar una respuesta positiva al cliente
     res.json({ success: true, roomCode: roomCode, playerName: playerName });
+
+    // Enviar el mensaje a todos los clientes conectados
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            const message = JSON.stringify({
+                event: "player_joined",
+                roomCode: roomCode,
+                playerName: playerName
+            });
+            client.send(message);
+        }
+    });
 });
 
 // Cuando un cliente se conecta a WebSocket
 wss.on("connection", (ws) => {
-    console.log("Cliente conectado.");
-
     ws.on("message", (message) => {
         console.log("Recibido:", message);
 
-        // Aquí puedes manejar el mensaje recibido y transmitirlo a otros jugadores
-        // Ejemplo de enviar el mensaje a todos los clientes conectados:
+        // Enviar el mensaje recibido a todos los clientes conectados
         wss.clients.forEach((client) => {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(message);
@@ -79,4 +83,3 @@ app.server.on("upgrade", (request, socket, head) => {
         wss.emit("connection", ws, request);
     });
 });
-
