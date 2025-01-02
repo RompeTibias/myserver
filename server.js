@@ -62,12 +62,17 @@ app.post('/join', (req, res) => {
 app.post('/endGame', (req, res) => {
     const { roomCode } = req.body;
 
-    // Eliminar la sala del registro
+    if (!roomCode) {
+        console.error('Error: Código de sala no proporcionado');
+        return res.json({ success: false, message: 'Código de sala no proporcionado' });
+    }
+
     if (rooms[roomCode]) {
         delete rooms[roomCode];
         console.log(`Sala ${roomCode} liberada`);
         res.json({ success: true, message: 'Sala liberada' });
     } else {
+        console.warn(`Intento de liberar una sala inexistente: ${roomCode}`);
         res.json({ success: false, message: 'La sala no existe' });
     }
 });
