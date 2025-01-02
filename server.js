@@ -1,16 +1,16 @@
 const express = require("express");
 const WebSocket = require("ws");
-const cors = require('cors');  // Importa CORS
-const path = require("path");  // Para servir archivos estáticos en producción
+const cors = require('cors');
+const path = require("path");
 
 const app = express();
-const port = process.env.PORT || 3000;  // Usa el puerto de producción si está disponible
+const port = process.env.PORT || 3000;
 
 // Middleware para procesar el JSON
 app.use(express.json());
 
 // Permite solicitudes desde cualquier origen (si deseas permitir CORS globalmente)
-app.use(cors());  // Agrega el middleware CORS
+app.use(cors());
 
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
@@ -21,32 +21,22 @@ const wss = new WebSocket.Server({ noServer: true });
 // Estructura para almacenar salas y jugadores
 let rooms = {};
 
-// Ruta para unirse a una sala
-app.post("/join", (req, res) => {
-    const { roomCode, playerName } = req.body;
-    
-    // Verificar si la sala existe
-    if (!rooms[roomCode]) {
-        return res.status(400).json({ success: false, message: "Código de sala no válido" });
-    }
-
-    // Añadir al jugador a la sala
-    rooms[roomCode].players.push(playerName);
-
-    // Enviar una respuesta positiva al cliente
-    res.json({ success: true, roomCode: roomCode, playerName: playerName });
-});
-
 // Cuando un cliente se conecta a WebSocket
 wss.on("connection", (ws) => {
     ws.on("message", (message) => {
-        console.log("Recibido:", message);
+        console.log("Recibido mensaje:", message.toString());  // Log para ver el mensaje recibido
         
         // Aquí puedes manejar el mensaje recibido y transmitirlo a otros jugadores
         // Ejemplo de enviar el mensaje a todos los clientes conectados:
         wss.clients.forEach((client) => {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message);
+                // Mensaje que se enviará a los clientes
+                const response = JSON.stringify({
+                    action: "room-created", 
+                    roomCode: "XXXX"
+                });
+                console.log("Enviando mensaje a cliente:", response);  // Log para ver qué mensaje se enviará
+                client.send(response);  // Enviar el mensaje a los clientes conectados
             }
         });
     });
@@ -55,8 +45,7 @@ wss.on("connection", (ws) => {
     ws.send("Conexión establecida con el servidor");
 });
 
-// Crear una sala con un código aleatorio
-// Crear una sala con un código aleatorio
+// Ruta para crear una nueva sala
 function createRoom() {
     const roomCode = Math.random().toString(36).substring(7);  // Crear un código de sala aleatorio
     rooms[roomCode] = { players: [] };  // Crear una sala vacía
@@ -65,12 +54,11 @@ function createRoom() {
     // Aquí notificamos a todos los clientes WebSocket sobre la creación de la sala
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-            // Asegurándote de que el mensaje es un JSON válido
             const response = JSON.stringify({
                 action: "room-created", 
                 roomCode: roomCode
             });
-            console.log("Enviando mensaje a cliente: ", response);  // Ver qué mensaje se envía
+            console.log("Enviando mensaje a cliente: ", response);  // Log para ver lo que se enviará
             client.send(response);
         }
     });
@@ -78,21 +66,6 @@ function createRoom() {
     return roomCode;
 }
 
-// Servidor: Después de crear la sala
-wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-        const response = JSON.stringify({
-            action: "room-created",
-            roomCode: roomCode
-        });
-        console.log("Enviando mensaje a cliente: ", response);  // Log para ver lo que se envía
-        client.send(response);
-    }
-});
-
-
-
-// Ruta para crear una nueva sala
 app.post("/create-room", (req, res) => {
     const roomCode = createRoom();
     res.json({ success: true, roomCode: roomCode });
