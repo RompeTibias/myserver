@@ -37,14 +37,16 @@ app.post('/join', (req, res) => {
         rooms[roomCode].lastActivity = Date.now();
         console.log(`${playerName} se unió a la sala ${roomCode}`);
 
+        const message = JSON.stringify({
+            type: 'newPlayer',
+            playerName: playerName,
+            roomCode: roomCode
+        });
+
+        console.log("Enviando mensaje a Unity:", message);
+
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                const message = JSON.stringify({
-                    type: 'newPlayer',
-                    playerName: playerName,
-                    roomCode: roomCode
-                });
-                console.log("Enviando mensaje a Unity:", message);
                 client.send(message);
             }
         });
