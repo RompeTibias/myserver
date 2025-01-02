@@ -5,12 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unirse a la sala</title>
     <script>
+        async function createRoom() {
+            // Realizar la solicitud para crear una nueva sala
+            const response = await fetch('/create-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Muestra el código de la sala
+                document.getElementById('roomCode').textContent = "Código de sala: " + data.roomCode;
+            } else {
+                alert("Error al crear la sala");
+            }
+        }
+
         async function joinRoom() {
             const playerName = document.getElementById("playerName").value;
-            const roomCode = document.getElementById("roomCode").value;
+            const roomCode = document.getElementById("roomCodeInput").value;
 
             // Realizar la solicitud para unirse a la sala
-            const response = await fetch('https://myserver-fjs8.onrender.com/join', {
+            const response = await fetch('/join', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -20,7 +39,7 @@
 
             const data = await response.json();
             if (data.success) {
-                alert("¡Bienvenido a la sala " + roomCode + "!");
+                alert("¡Bienvenido " + playerName + " a la sala " + roomCode + "!");
             } else {
                 alert("Error: " + data.message);
             }
@@ -29,8 +48,14 @@
 </head>
 <body>
     <h1>Unirse a una sala</h1>
-    <label for="roomCode">Código de la sala:</label>
-    <input type="text" id="roomCode" required><br><br>
+
+    <!-- Formulario para crear una sala -->
+    <button onclick="createRoom()">Crear Sala</button>
+    <p id="roomCode"></p>
+
+    <h2>O unirse a una sala existente</h2>
+    <label for="roomCodeInput">Código de la sala:</label>
+    <input type="text" id="roomCodeInput" required><br><br>
 
     <label for="playerName">Nombre del jugador:</label>
     <input type="text" id="playerName" required><br><br>
