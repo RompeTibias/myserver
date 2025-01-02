@@ -58,25 +58,26 @@ wss.on("connection", (ws) => {
 // Crear una sala con un código aleatorio
 // Crear una sala con un código aleatorio
 function createRoom() {
-   // Después de crear la sala, enviar la respuesta
-const roomCode = Math.random().toString(36).substring(7);  // Crear un código de sala aleatorio
-rooms[roomCode] = { players: [] };  // Crear una sala vacía
+    const roomCode = Math.random().toString(36).substring(7);  // Crear un código de sala aleatorio
+    rooms[roomCode] = { players: [] };  // Crear una sala vacía
+    console.log("Sala creada con código:", roomCode);
 
-// Asegurándote de que el mensaje es un JSON válido
-wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-        const response = JSON.stringify({
-            action: "room-created",
-            roomCode: roomCode
-        });
-        console.log("Enviando mensaje a cliente: ", response);  // Para ver qué mensaje se envía
-        client.send(response);
-    }
-});
-
+    // Aquí notificamos a todos los clientes WebSocket sobre la creación de la sala
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            // Asegurándote de que el mensaje es un JSON válido
+            const response = JSON.stringify({
+                action: "room-created", 
+                roomCode: roomCode
+            });
+            console.log("Enviando mensaje a cliente: ", response);  // Ver qué mensaje se envía
+            client.send(response);
+        }
+    });
 
     return roomCode;
 }
+
 
 
 
