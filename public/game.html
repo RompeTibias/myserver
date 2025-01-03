@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Messages</title>
+</head>
+<body>
+    <h1>Send a Message to Unity</h1>
+    <input type="text" id="messageInput" placeholder="Enter your message">
+    <button onclick="sendMessageToUnity()">Send Message</button>
+    
+    <script>
+        // Esta función se encargará de enviar el mensaje a Unity.
+        function sendMessageToUnity() {
+            var message = document.getElementById("messageInput").value;
+            if (message) {
+                // Llamamos al método de Unity que mostrará el mensaje.
+                gameInstance.SendMessage('MessageReceiver', 'DisplayMessage', message);
+            } else {
+                alert('Please enter a message!');
+            }
+        }
+    </script>
+
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+        var gameInstance = UnityLoader.instantiate("gameContainer", "Build/game.json");
+    </script>
+</body>
+</html>
