@@ -39,26 +39,13 @@ app.post('/join', (req, res) => {
         rooms[roomCode].lastActivity = Date.now();
         console.log(`${playerName} se unió a la sala ${roomCode}`);
 
-        const message = JSON.stringify({
-            type: 'newPlayer',
-            playerName: playerName,
-            roomCode: roomCode
-        });
-
-        console.log("Enviando mensaje a Unity:", message);
-
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
         console.error('Código de sala no válido');
         res.json({ success: false, message: 'Código de sala no válido' });
     }
 });
+
 
 // Endpoint para obtener la información de la sala (jugadores y sus personajes)
 app.get('/getRoomInfo', (req, res) => {
