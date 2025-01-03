@@ -3,29 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Messages</title>
+    <title>Juego - Sala</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #messages {
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow-y: scroll;
+            height: 200px;
+        }
+        #input-container {
+            display: flex;
+            margin-top: 10px;
+        }
+        #input-container input {
+            padding: 10px;
+            margin-right: 10px;
+            font-size: 16px;
+            width: 300px;
+        }
+        #input-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Send a Message to Unity</h1>
-    <input type="text" id="messageInput" placeholder="Enter your message">
-    <button onclick="sendMessageToUnity()">Send Message</button>
-    
+    <h1>Bienvenido al Juego</h1>
+
+    <div id="messages"></div>
+
+    <div id="input-container">
+        <input type="text" id="messageInput" placeholder="Escribe tu mensaje...">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+
     <script>
-        // Esta función se encargará de enviar el mensaje a Unity.
-        function sendMessageToUnity() {
-            var message = document.getElementById("messageInput").value;
+        const ws = new WebSocket('ws://localhost:3000');  // Asegúrate de que la dirección y el puerto son correctos
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+
+        // Recibe los mensajes del servidor
+        ws.onmessage = function(event) {
+            const messageData = JSON.parse(event.data);
+
+            if (messageData.message) {
+                const messageElement = document.createElement('p');
+                messageElement.textContent = messageData.message;
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;  // Hacer scroll al final
+            }
+        };
+
+        // Enviar mensaje al servidor
+        function sendMessage() {
+            const message = messageInput.value;
             if (message) {
-                // Llamamos al método de Unity que mostrará el mensaje.
-                gameInstance.SendMessage('MessageReceiver', 'DisplayMessage', message);
-            } else {
-                alert('Please enter a message!');
+                ws.send(JSON.stringify({ message: message }));
+                messageInput.value = ''; // Limpiar el campo de entrada
             }
         }
-    </script>
-
-    <script src="Build/UnityLoader.js"></script>
-    <script>
-        var gameInstance = UnityLoader.instantiate("gameContainer", "Build/game.json");
     </script>
 </body>
 </html>
