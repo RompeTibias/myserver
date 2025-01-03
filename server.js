@@ -10,19 +10,21 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = require('http').createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let rooms = {};
+let rooms = {};  // Contendrá las salas y sus jugadores
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Endpoint para crear una nueva sala
 app.post('/createRoom', (req, res) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    rooms[roomCode] = { players: [], lastActivity: Date.now() };
+    rooms[roomCode] = { players: [], characters: {}, lastActivity: Date.now() }; // Agregar 'characters'
     console.log(`Sala creada: ${roomCode}`);
     res.json({ roomCode });
 });
 
+// Endpoint para unirse a una sala
 app.post('/join', (req, res) => {
     const { roomCode, playerName } = req.body;
     console.log(`Intentando unir a la sala: ${roomCode} con el jugador: ${playerName}`);
@@ -58,6 +60,56 @@ app.post('/join', (req, res) => {
     }
 });
 
+// Endpoint para obtener la información de la sala (jugadores y sus personajes)
+app.get('/getRoomInfo', (req, res) => {
+    const { roomCode } = req.query;
+    if (rooms[roomCode]) {
+        res.json(rooms[roomCode]);
+    } else {
+        res.json({ success: false, message: 'Sala no encontrada' });
+    }
+});
+
+// Endpoint para guardar el personaje seleccionado por un jugador
+app.post('/saveCharacter', (req, res) => {
+    const { roomCode, playerName, character } = req.body;
+
+    if (!roomCode || !playerName || !character) {
+        return res.json({ success: false, message: 'Datos incompletos' });
+    }
+
+    const room = rooms[roomCode];
+    if (!room) {
+        return res.json({ success: false, message: 'Sala no encontrada' });
+    }
+
+    // Verificar si el personaje ya está ocupado
+    if (Object.values(room.characters).includes(character)) {
+        return res.json({ success: false, message: 'Este personaje ya está en uso' });
+    }
+
+    // Asignar el personaje al jugador
+    room.characters[playerName] = character;
+    console.log(`${playerName} ha seleccionado el personaje ${character} en la sala ${roomCode}`);
+
+    // Enviar la actualización a todos los clientes (Unity y otros jugadores)
+    const message = JSON.stringify({
+        type: 'playerCharacterSelected',
+        playerName: playerName,
+        character: character,
+        roomCode: roomCode
+    });
+
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+
+    res.json({ success: true, message: 'Personaje seleccionado correctamente' });
+});
+
+// Endpoint para finalizar el juego y liberar la sala
 app.post('/endGame', (req, res) => {
     const { roomCode } = req.body;
     console.log(`Intentando terminar el juego en la sala: ${roomCode}`);
@@ -77,6 +129,7 @@ app.post('/endGame', (req, res) => {
     }
 });
 
+// WebSocket para la comunicación con Unity
 wss.on('connection', (ws) => {
     console.log('Un cliente (Unity) se ha conectado');
     ws.send(JSON.stringify({ message: 'Conexión establecida con el servidor' }));
@@ -90,6 +143,7 @@ wss.on('connection', (ws) => {
     });
 });
 
+// Liberar salas inactivas después de 1 hora
 setInterval(() => {
     const now = Date.now();
     for (const [roomCode, room] of Object.entries(rooms)) {
