@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unirse a la sala</title>
     <script>
+        // Función que se ejecuta cuando el jugador presiona "Unirse"
         async function joinRoom() {
             const playerName = document.getElementById("playerName").value;
             const roomCode = document.getElementById("roomCode").value;
@@ -20,7 +21,10 @@
 
             const data = await response.json();
             if (data.success) {
-                alert("¡Bienvenido a la sala " + roomCode + "!");
+                // Si unirse fue exitoso, redirigimos a la página de selección de personaje
+                localStorage.setItem("playerName", playerName); // Guardar nombre en el almacenamiento local
+                localStorage.setItem("roomCode", roomCode); // Guardar código de la sala en el almacenamiento local
+                window.location.href = "select_character.html"; // Redirigir
             } else {
                 alert("Error: " + data.message);
             }
