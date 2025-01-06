@@ -12,11 +12,6 @@ const wss = new WebSocket.Server({ server });
 
 let rooms = {};  // Contendrá las salas y sus jugadores
 
-// Lista de minijuegos disponibles
-const miniGames = [
-    { name: "Rinón", scene: "RinonScene", minPlayers: 4, maxPlayers: 8 }
-];
-
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -77,65 +72,6 @@ app.get('/getRoomInfo', (req, res) => {
     }
 });
 
-// Endpoint para guardar el personaje seleccionado por un jugador
-app.post('/saveCharacter', (req, res) => {
-    const { roomCode, playerName, character } = req.body;
-
-    if (!roomCode || !playerName || !character) {
-        return res.json({ success: false, message: 'Datos incompletos' });
-    }
-
-    const room = rooms[roomCode];
-    if (!room) {
-        return res.json({ success: false, message: 'Sala no encontrada' });
-    }
-
-    // Verificar si el personaje ya está ocupado
-    if (Object.values(room.characters).includes(character)) {
-        return res.json({ success: false, message: 'Este personaje ya está en uso' });
-    }
-
-    // Asignar el personaje al jugador
-    room.characters[playerName] = character;
-    console.log(`${playerName} ha seleccionado el personaje ${character} en la sala ${roomCode}`);
-
-    // Enviar la actualización a todos los clientes (Unity y otros jugadores)
-    const message = JSON.stringify({
-        type: 'playerCharacterSelected',
-        playerName: playerName,
-        character: character,
-        roomCode: roomCode
-    });
-
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
-
-    res.json({ success: true, message: 'Personaje seleccionado correctamente' });
-});
-
-// Endpoint para finalizar el juego y liberar la sala
-app.post('/endGame', (req, res) => {
-    const { roomCode } = req.body;
-    console.log(`Intentando terminar el juego en la sala: ${roomCode}`);
-
-    if (!roomCode) {
-        console.error('Código de sala no proporcionado');
-        return res.json({ success: false, message: 'Código de sala no proporcionado' });
-    }
-
-    if (rooms[roomCode]) {
-        delete rooms[roomCode];
-        console.log(`Sala ${roomCode} liberada`);
-        res.json({ success: true, message: 'Sala liberada' });
-    } else {
-        console.error('La sala no existe');
-        res.json({ success: false, message: 'La sala no existe' });
-    }
-});
-
 // WebSocket para la comunicación con Unity
 wss.on('connection', (ws) => {
     console.log('Un cliente (Unity) se ha conectado');
@@ -143,6 +79,24 @@ wss.on('connection', (ws) => {
 
     ws.on('message', (message) => {
         console.log('Mensaje recibido de Unity:', message);
+
+        // Procesar el mensaje recibido para iniciar el minijuego
+        const msg = JSON.parse(message);
+        if (msg.type === "startGame") {
+            // Aquí es donde se maneja el inicio del minijuego
+            const game = msg.game; // Nombre del minijuego
+            console.log(`Iniciando minijuego: ${game}`);
+            
+            // Servir el HTML del minijuego correspondiente
+            if (game === "Rinon") {
+                // Suponiendo que el archivo HTML de "Rinon" se encuentra en una carpeta llamada "minijuegos"
+                const gameHtmlPath = path.join(__dirname, 'public', 'minijuegos', 'rinon.html');
+                ws.send(JSON.stringify({ type: 'startGame', game: game, html: gameHtmlPath }));
+            } else {
+                // Si el juego no está definido, puedes manejarlo aquí
+                console.log(`Juego no definido: ${game}`);
+            }
+        }
     });
 
     ws.on('close', () => {
@@ -160,51 +114,6 @@ setInterval(() => {
         }
     }
 }, 60000);
-
-// Elegir un minijuego aleatorio basado en la cantidad de jugadores
-function chooseMiniGameForRoom(roomCode) {
-    const room = rooms[roomCode];
-    if (!room) return;
-
-    const playerCount = room.players.length;
-    const availableGames = miniGames.filter(game => playerCount >= game.minPlayers && playerCount <= game.maxPlayers);
-
-    if (availableGames.length > 0) {
-        // Elegir un minijuego aleatorio
-        const randomGame = availableGames[Math.floor(Math.random() * availableGames.length)];
-
-        // Notificar a los clientes sobre el minijuego elegido
-        const message = JSON.stringify({
-            type: 'startGame',
-            game: randomGame.name,
-            scene: randomGame.scene,
-            players: playerCount
-        });
-
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-
-        console.log(`Minijuego elegido: ${randomGame.name} para la sala ${roomCode}`);
-    }
-}
-
-// Llamar a esta función cuando haya suficientes jugadores en la sala
-function checkAndStartMiniGame(roomCode) {
-    const room = rooms[roomCode];
-    if (room && room.players.length >= 3) {
-        chooseMiniGameForRoom(roomCode);
-    }
-}
-
-// Ejecutar la función cuando haya suficientes jugadores
-setInterval(() => {
-    for (const roomCode in rooms) {
-        checkAndStartMiniGame(roomCode);
-    }
-}, 5000);
 
 server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
