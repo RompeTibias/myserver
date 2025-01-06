@@ -39,6 +39,22 @@ app.post('/join', (req, res) => {
         rooms[roomCode].lastActivity = Date.now();
         console.log(`${playerName} se unió a la sala ${roomCode}`);
 
+        // Verificar si hay 3 o más jugadores
+        if (rooms[roomCode].players.length >= 3) {
+            // Notificar a todos los clientes que hay suficientes jugadores
+            const message = JSON.stringify({
+                type: 'playersReady',
+                roomCode: roomCode
+            });
+
+            // Enviar el mensaje a todos los clientes WebSocket conectados
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message);
+                }
+            });
+        }
+
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
         console.error('Código de sala no válido');
