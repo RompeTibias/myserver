@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minijuego Rino</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            font-family: Arial, sans-serif;
+        }
+        .game-container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #ff6347;
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        .rino-image {
+            width: 200px;
+            height: auto;
+            margin-top: 20px;
+        }
+        .start-button {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #ff6347;
+            color: white;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .start-button:hover {
+            background-color: #e5533c;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>¡Bienvenido al Minijuego Rino!</h1>
+        <img class="rino-image" src="https://example.com/rino-image.png" alt="Imagen de Rino">
+        <p>¡Prepárate para jugar con Rino!</p>
+        <button class="start-button" onclick="startGame()">Comenzar Juego</button>
+    </div>
+
+    <script>
+        // Función para iniciar el minijuego (puedes modificarla para tu lógica)
+        function startGame() {
+            alert('¡El juego ha comenzado!');
+            // Lógica del juego aquí...
+        }
+    </script>
+</body>
+</html>
