@@ -14,7 +14,7 @@ let rooms = {};  // Contendrá las salas y sus jugadores
 
 // Lista de minijuegos disponibles
 const miniGames = [
-    { name: "Rinón", scene: "RinonScene", minPlayers: 4, maxPlayers: 8 }
+    { name: "Rinon", scene: "RinonScene", minPlayers: 4, maxPlayers: 8 }
 ];
 
 app.get('/', (req, res) => {
