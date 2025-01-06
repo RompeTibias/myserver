@@ -12,6 +12,11 @@ const wss = new WebSocket.Server({ server });
 
 let rooms = {};  // Contendrá las salas y sus jugadores
 
+// Lista de minijuegos disponibles
+const miniGames = [
+    { name: "Rinón", scene: "RinonScene", minPlayers: 4, maxPlayers: 8 }
+];
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -61,7 +66,6 @@ app.post('/join', (req, res) => {
         res.json({ success: false, message: 'Código de sala no válido' });
     }
 });
-
 
 // Endpoint para obtener la información de la sala (jugadores y sus personajes)
 app.get('/getRoomInfo', (req, res) => {
@@ -156,6 +160,51 @@ setInterval(() => {
         }
     }
 }, 60000);
+
+// Elegir un minijuego aleatorio basado en la cantidad de jugadores
+function chooseMiniGameForRoom(roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    const playerCount = room.players.length;
+    const availableGames = miniGames.filter(game => playerCount >= game.minPlayers && playerCount <= game.maxPlayers);
+
+    if (availableGames.length > 0) {
+        // Elegir un minijuego aleatorio
+        const randomGame = availableGames[Math.floor(Math.random() * availableGames.length)];
+
+        // Notificar a los clientes sobre el minijuego elegido
+        const message = JSON.stringify({
+            type: 'startGame',
+            game: randomGame.name,
+            scene: randomGame.scene,
+            players: playerCount
+        });
+
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+
+        console.log(`Minijuego elegido: ${randomGame.name} para la sala ${roomCode}`);
+    }
+}
+
+// Llamar a esta función cuando haya suficientes jugadores en la sala
+function checkAndStartMiniGame(roomCode) {
+    const room = rooms[roomCode];
+    if (room && room.players.length >= 3) {
+        chooseMiniGameForRoom(roomCode);
+    }
+}
+
+// Ejecutar la función cuando haya suficientes jugadores
+setInterval(() => {
+    for (const roomCode in rooms) {
+        checkAndStartMiniGame(roomCode);
+    }
+}, 5000);
 
 server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
