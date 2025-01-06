@@ -21,21 +21,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Inicializar una sala
-function initializeRoom(roomCode) {
-    rooms[roomCode] = {
-        players: [],
-        characters: {},
-        lastActivity: Date.now(),
-        gameStarted: false, // Nuevo estado
-        currentGame: null,  // Información del minijuego actual
-    };
-}
-
 // Endpoint para crear una nueva sala
 app.post('/createRoom', (req, res) => {
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    initializeRoom(roomCode);
+    rooms[roomCode] = { players: [], characters: {}, lastActivity: Date.now(), gameStarted: false };
     console.log(`Sala creada: ${roomCode}`);
     res.json({ roomCode });
 });
@@ -54,6 +43,26 @@ app.post('/join', (req, res) => {
         rooms[roomCode].players.push(playerName);
         rooms[roomCode].lastActivity = Date.now();
         console.log(`${playerName} se unió a la sala ${roomCode}`);
+
+        // Verificar si hay 3 o más jugadores
+        if (rooms[roomCode].players.length >= 3 && !rooms[roomCode].gameStarted) {
+            // Notificar a todos los clientes que hay suficientes jugadores
+            const message = JSON.stringify({
+                type: 'playersReady',
+                roomCode: roomCode
+            });
+
+            // Enviar el mensaje a todos los clientes WebSocket conectados
+            wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(message);
+                }
+            });
+
+            // Elegir el minijuego
+            chooseMiniGameForRoom(roomCode);
+        }
+
         res.json({ success: true, players: rooms[roomCode].players });
     } else {
         console.error('Código de sala no válido');
@@ -61,20 +70,11 @@ app.post('/join', (req, res) => {
     }
 });
 
-// Endpoint para obtener la información de la sala
+// Endpoint para obtener la información de la sala (jugadores y sus personajes)
 app.get('/getRoomInfo', (req, res) => {
     const { roomCode } = req.query;
-    const room = rooms[roomCode];
-
-    if (room) {
-        res.json({
-            success: true,
-            players: room.players,
-            characters: room.characters,
-            gameStarted: room.gameStarted,
-            currentGame: room.currentGame,
-            scene: room.currentGame?.scene || null,
-        });
+    if (rooms[roomCode]) {
+        res.json(rooms[roomCode]);
     } else {
         res.json({ success: false, message: 'Sala no encontrada' });
     }
@@ -101,30 +101,85 @@ app.post('/saveCharacter', (req, res) => {
     // Asignar el personaje al jugador
     room.characters[playerName] = character;
     console.log(`${playerName} ha seleccionado el personaje ${character} en la sala ${roomCode}`);
+
+    // Enviar la actualización a todos los clientes (Unity y otros jugadores)
+    const message = JSON.stringify({
+        type: 'playerCharacterSelected',
+        playerName: playerName,
+        character: character,
+        roomCode: roomCode
+    });
+
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+
     res.json({ success: true, message: 'Personaje seleccionado correctamente' });
 });
 
-// Elegir un minijuego para la sala
+// Endpoint para finalizar el juego y liberar la sala
+app.post('/endGame', (req, res) => {
+    const { roomCode } = req.body;
+    console.log(`Intentando terminar el juego en la sala: ${roomCode}`);
+
+    if (!roomCode) {
+        console.error('Código de sala no proporcionado');
+        return res.json({ success: false, message: 'Código de sala no proporcionado' });
+    }
+
+    if (rooms[roomCode]) {
+        delete rooms[roomCode];
+        console.log(`Sala ${roomCode} liberada`);
+        res.json({ success: true, message: 'Sala liberada' });
+    } else {
+        console.error('La sala no existe');
+        res.json({ success: false, message: 'La sala no existe' });
+    }
+});
+
+// WebSocket para la comunicación con Unity
+wss.on('connection', (ws) => {
+    console.log('Un cliente (Unity) se ha conectado');
+    ws.send(JSON.stringify({ message: 'Conexión establecida con el servidor' }));
+
+    ws.on('message', (message) => {
+        console.log('Mensaje recibido de Unity:', message);
+    });
+
+    ws.on('close', () => {
+        console.log('Un cliente (Unity) se ha desconectado');
+    });
+});
+
+// Liberar salas inactivas después de 1 hora
+setInterval(() => {
+    const now = Date.now();
+    for (const [roomCode, room] of Object.entries(rooms)) {
+        if (room.lastActivity && now - room.lastActivity > 3600000) {
+            console.log(`Liberando sala inactiva: ${roomCode}`);
+            delete rooms[roomCode];
+        }
+    }
+}, 60000);
+
+// Elegir un minijuego aleatorio basado en la cantidad de jugadores
 function chooseMiniGameForRoom(roomCode) {
     const room = rooms[roomCode];
     if (!room) return;
 
-    if (room.gameStarted) {
-        console.log(`Minijuego ya iniciado para la sala ${roomCode}.`);
-        return;
-    }
-
     const playerCount = room.players.length;
-    const availableGames = miniGames.filter(
-        game => playerCount >= game.minPlayers && playerCount <= game.maxPlayers
-    );
+    const availableGames = miniGames.filter(game => playerCount >= game.minPlayers && playerCount <= game.maxPlayers);
 
     if (availableGames.length > 0) {
+        // Elegir un minijuego aleatorio
         const randomGame = availableGames[Math.floor(Math.random() * availableGames.length)];
-        room.gameStarted = true;
-        room.currentGame = randomGame;
-        room.lastActivity = Date.now();
 
+        // Marcar el juego como iniciado para evitar enviar múltiples mensajes
+        room.gameStarted = true;
+
+        // Notificar a los clientes sobre el minijuego elegido
         const message = JSON.stringify({
             type: 'startGame',
             game: randomGame.name,
@@ -138,32 +193,19 @@ function chooseMiniGameForRoom(roomCode) {
             }
         });
 
-        console.log(`Minijuego iniciado: ${randomGame.name} para la sala ${roomCode}`);
-    } else {
-        console.log(`No hay minijuegos disponibles para la sala ${roomCode}.`);
+        console.log(`Minijuego elegido: ${randomGame.name} para la sala ${roomCode}`);
     }
 }
 
-// Verificar y comenzar el minijuego si es necesario
+// Llamar a esta función cuando haya suficientes jugadores en la sala
 function checkAndStartMiniGame(roomCode) {
     const room = rooms[roomCode];
-    if (room && room.players.length >= 3) {
+    if (room && room.players.length >= 3 && !room.gameStarted) {
         chooseMiniGameForRoom(roomCode);
     }
 }
 
-// Liberar salas inactivas después de 1 hora
-setInterval(() => {
-    const now = Date.now();
-    for (const [roomCode, room] of Object.entries(rooms)) {
-        if (room.lastActivity && now - room.lastActivity > 3600000) {
-            console.log(`Liberando sala inactiva: ${roomCode}`);
-            delete rooms[roomCode];
-        }
-    }
-}, 60000);
-
-// Ejecutar la función para iniciar minijuegos periódicamente
+// Ejecutar la función cuando haya suficientes jugadores
 setInterval(() => {
     for (const roomCode in rooms) {
         checkAndStartMiniGame(roomCode);
