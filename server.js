@@ -1,6 +1,7 @@
 const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
+const fs = require('fs'); // Para verificar la existencia de archivos
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -10,7 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = require('http').createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let rooms = {};  // Contendrá las salas y sus jugadores
+let rooms = {}; // Contendrá las salas y sus jugadores
 
 // Lista de minijuegos disponibles
 const miniGames = [
@@ -157,13 +158,21 @@ wss.on('connection', (ws) => {
                     return;
                 }
 
+                // Verificar y buscar el archivo HTML del minijuego
+                const miniGamePath = path.join(__dirname, 'public', 'minijuegos', `${validGame.name}.html`);
+                if (!fs.existsSync(miniGamePath)) {
+                    console.error(`Archivo HTML para ${validGame.name} no encontrado en ${miniGamePath}.`);
+                    return;
+                }
+
                 room.gameStarted = true;
 
                 const startMessage = JSON.stringify({
                     type: 'startGame',
                     game: validGame.name,
                     scene: validGame.scene,
-                    players: room.players.length
+                    players: room.players.length,
+                    miniGamePath: `/minijuegos/${validGame.name}.html` // Ruta relativa para los clientes
                 });
 
                 wss.clients.forEach(client => {
@@ -198,4 +207,3 @@ setInterval(() => {
 server.listen(port, () => {
     console.log(`Servidor escuchando en http://localhost:${port}`);
 });
-
