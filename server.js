@@ -165,23 +165,26 @@ wss.on('connection', (ws) => {
                     return;
                 }
 
+                // Actualizar la información del juego en la sala
                 room.gameStarted = true;
 
-                const startMessage = JSON.stringify({
-                    type: 'startGame',
-                    game: validGame.name,
-                    scene: validGame.scene,
-                    players: room.players.length,
-                    miniGamePath: `/minijuegos/${validGame.name}.html` // Ruta relativa para los clientes
+                // Usar la ruta corregida
+                const gameHtmlPath = path.join('/minijuegos', `${validGame.name}.html`);
+
+                // Redirigir a los jugadores al HTML del minijuego
+                const redirectMessage = JSON.stringify({
+                    type: 'redirectToMiniGame',
+                    miniGamePath: gameHtmlPath
                 });
 
+                // Enviar el mensaje a todos los jugadores en la sala para redirigirlos al minijuego
                 wss.clients.forEach(client => {
                     if (client.readyState === WebSocket.OPEN) {
-                        client.send(startMessage);
+                        client.send(redirectMessage);
                     }
                 });
 
-                console.log(`Minijuego ${validGame.name} seleccionado y notificado para la sala ${roomCode}`);
+                console.log(`Minijuego ${validGame.name} seleccionado. Los jugadores serán redirigidos a: ${gameHtmlPath}`);
             }
         } catch (err) {
             console.error('Error procesando mensaje WebSocket:', err.message);
