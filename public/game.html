@@ -40,7 +40,7 @@
 
     <script>
         // Conexión WebSocket con el servidor
-        const ws = new WebSocket('ws://localhost:3000');
+        const ws = new WebSocket('wss://myserver-fjs8.onrender.com/'); // Asegúrate de usar la URL correcta
 
         // Elemento donde se mostrarán los mensajes
         const messagesDiv = document.getElementById('messages');
@@ -51,9 +51,20 @@
             ws.send(JSON.stringify({ type: 'newMessage', message: '¡Esperando jugadores!' }));
         };
 
-        // Recibir mensajes del servidor y mostrarlos en el HTML
+        // Recibir mensajes del servidor
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+
+            // Si el servidor envía un mensaje para redirigir
+            if (data.type === 'redirectToMiniGame') {
+                const miniGamePath = data.miniGamePath;
+                console.log(`Redirigiendo a: ${miniGamePath}`);
+
+                // Redirigir al minijuego
+                window.location.href = `https://myserver-fjs8.onrender.com${miniGamePath}`;
+            }
+
+            // Si el servidor envía un mensaje general
             if (data.message) {
                 displayMessage(data.message);
             }
