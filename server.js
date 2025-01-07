@@ -133,6 +133,7 @@ app.post('/endGame', (req, res) => {
 });
 
 // WebSocket para la comunicación con Unity
+// WebSocket para la comunicación con Unity
 wss.on('connection', (ws) => {
     console.log('Un cliente (Unity) se ha conectado');
     ws.send(JSON.stringify({ message: 'Conexión establecida con el servidor' }));
@@ -169,7 +170,7 @@ wss.on('connection', (ws) => {
                 room.gameStarted = true;
 
                 // Usar la ruta corregida
-                const gameHtmlPath = `/minijuegos/${validGame.name}.html`;
+                const gameHtmlPath = '/minijuegos/' + `${validGame.name}.html`;  // Asegúrate de no tener un doble '/' aquí
 
                 // Redirigir a los jugadores al HTML del minijuego
                 const redirectMessage = JSON.stringify({
@@ -195,6 +196,7 @@ wss.on('connection', (ws) => {
         console.log('Un cliente (Unity) se ha desconectado');
     });
 });
+
 
 // Liberar salas inactivas después de 1 hora
 setInterval(() => {
