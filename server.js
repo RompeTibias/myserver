@@ -169,7 +169,7 @@ wss.on('connection', (ws) => {
                 room.gameStarted = true;
 
                 // Usar la ruta corregida
-                const gameHtmlPath = path.join('/minijuegos', `${validGame.name}.html`);
+                const gameHtmlPath = `/minijuegos/${validGame.name}.html`;
 
                 // Redirigir a los jugadores al HTML del minijuego
                 const redirectMessage = JSON.stringify({
