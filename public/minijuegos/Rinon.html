@@ -6,60 +6,127 @@
     <title>Minijuego Rino</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f8ff;
-            font-family: Arial, sans-serif;
+            overflow: hidden;
         }
-        .game-container {
+        .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo {
+            width: 300px;
+            height: auto;
+        }
+        .instructions {
+            font-size: 1.2em;
+            color: #333;
+            margin-top: 20px;
             text-align: center;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
-        h1 {
-            color: #ff6347;
-            font-size: 3em;
+        .chisme-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .chisme-prompt {
+            font-size: 1.5em;
             margin-bottom: 20px;
         }
-        .rino-image {
-            width: 200px;
-            height: auto;
-            margin-top: 20px;
+        .chisme-input {
+            width: 80%;
+            max-width: 500px;
+            padding: 10px;
+            font-size: 1em;
+            margin-bottom: 20px;
         }
-        .start-button {
-            margin-top: 30px;
+        .submit-button {
             padding: 10px 20px;
+            font-size: 1.2em;
             background-color: #ff6347;
             color: white;
-            font-size: 1.2em;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
-        .start-button:hover {
+        .submit-button:hover {
             background-color: #e5533c;
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>¡Bienvenido al Minijuego Rino!</h1>
-        <img class="rino-image" src="https://example.com/rino-image.png" alt="Imagen de Rino">
-        <p>¡Prepárate para jugar con Rino!</p>
-        <button class="start-button" onclick="startGame()">Comenzar Juego</button>
+    <!-- Logo del Minijuego -->
+    <div class="logo-container" id="logoContainer">
+        <img class="logo" src="https://example.com/rinon-logo.png" alt="Logo del Minijuego Rino">
+        <p class="instructions">Esperando instrucciones desde Unity...</p>
+    </div>
+
+    <!-- Primera ronda -->
+    <div class="chisme-container" id="chismeContainer">
+        <p class="chisme-prompt" id="chismePrompt"></p>
+        <textarea class="chisme-input" id="chismeInput" placeholder="Escribe tu chisme aquí..."></textarea>
+        <button class="submit-button" id="submitChisme">Enviar Chisme</button>
     </div>
 
     <script>
-        // Función para iniciar el minijuego (puedes modificarla para tu lógica)
-        function startGame() {
-            alert('¡El juego ha comenzado!');
-            // Lógica del juego aquí...
+        const logoContainer = document.getElementById('logoContainer');
+        const chismeContainer = document.getElementById('chismeContainer');
+        const chismePrompt = document.getElementById('chismePrompt');
+        const chismeInput = document.getElementById('chismeInput');
+        const submitChisme = document.getElementById('submitChisme');
+
+        // Configuración del WebSocket
+        const ws = new WebSocket('ws://myserver-fjs8.onrender.com'); // Cambiar por la URL correcta del servidor
+
+        ws.onopen = () => {
+            console.log("Conexión WebSocket establecida.");
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            console.log("Mensaje recibido:", data);
+
+            if (data.type === 'startRound' && data.round === 1) {
+                showFirstRound(data.targetPlayer);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log("Conexión WebSocket cerrada.");
+        };
+
+        // Mostrar la primera ronda
+        function showFirstRound(targetPlayer) {
+            logoContainer.style.display = 'none';
+            chismeContainer.style.display = 'flex';
+            chismePrompt.textContent = `Tienes que crear un chisme sobre ${targetPlayer}.`;
         }
+
+        // Enviar el chisme al servidor
+        submitChisme.addEventListener('click', () => {
+            const chisme = chismeInput.value.trim();
+            if (chisme === '') {
+                alert('Por favor, escribe un chisme antes de enviar.');
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'submitChisme',
+                chisme: chisme
+            }));
+
+            chismeInput.value = ''; // Limpiar el campo
+            alert('¡Tu chisme ha sido enviado!');
+        });
     </script>
 </body>
 </html>
