@@ -85,7 +85,7 @@
         const submitChisme = document.getElementById('submitChisme');
 
         // Configuración del WebSocket
-        const ws = new WebSocket('ws://myserver-fjs8.onrender.com'); // Cambiar por la URL correcta del servidor
+        const ws = new WebSocket('wss://myserver-fjs8.onrender.com'); // Cambiar por la URL correcta del servidor
 
         ws.onopen = () => {
             console.log("Conexión WebSocket establecida.");
