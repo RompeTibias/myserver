@@ -92,14 +92,29 @@
         };
 
         ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            console.log("Mensaje recibido:", data);
-
-            if (data.type === 'startRound' && data.round === 1) {
-                showFirstRound(data.targetPlayer);
+            // Si el mensaje es un ArrayBuffer, convertirlo a string
+            let message = event.data;
+            if (message instanceof ArrayBuffer) {
+                // Si es un ArrayBuffer, convertirlo a string
+                const decoder = new TextDecoder('utf-8');
+                message = decoder.decode(message);
             }
-            if (data.type === 'roundInstruction') {
-                handleRoundInstruction(data.message);
+
+            console.log("Mensaje recibido:", message);
+
+            try {
+                // Parsear el mensaje JSON
+                const data = JSON.parse(message);
+                console.log("Mensaje JSON:", data);
+
+                if (data.type === 'startRound' && data.round === 1) {
+                    showFirstRound(data.targetPlayer);
+                }
+                if (data.type === 'roundInstruction') {
+                    handleRoundInstruction(data.message);
+                }
+            } catch (error) {
+                console.error('Error al procesar el mensaje JSON:', error);
             }
         };
 
