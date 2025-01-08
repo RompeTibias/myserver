@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minijuego Rino</title>
+    <title>Minijuego Rinon</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,7 +66,7 @@
 <body>
     <!-- Logo del Minijuego -->
     <div class="logo-container" id="logoContainer">
-        <img class="logo" src="https://example.com/rinon-logo.png" alt="Logo del Minijuego Rino">
+        <img class="logo" src="https://example.com/rinon-logo.png" alt="Logo del Minijuego Rinon">
         <p class="instructions">Esperando instrucciones desde Unity...</p>
     </div>
 
@@ -98,11 +98,22 @@
             if (data.type === 'startRound' && data.round === 1) {
                 showFirstRound(data.targetPlayer);
             }
+            if (data.type === 'roundInstruction') {
+                handleRoundInstruction(data.message);
+            }
         };
 
         ws.onclose = () => {
             console.log("Conexión WebSocket cerrada.");
         };
+
+        // Manejar instrucciones de Unity
+        function handleRoundInstruction(message) {
+            console.log("Instrucción de Unity:", message);
+            if (message === "startFirstRound") {
+                showFirstRound();
+            }
+        }
 
         // Mostrar la primera ronda
         function showFirstRound(targetPlayer) {
