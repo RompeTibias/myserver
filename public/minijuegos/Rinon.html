@@ -92,26 +92,20 @@
         };
 
         ws.onmessage = (event) => {
-            // Si el mensaje es un ArrayBuffer, convertirlo a string
             let message = event.data;
-            if (message instanceof ArrayBuffer) {
-                // Si es un ArrayBuffer, convertirlo a string
-                const decoder = new TextDecoder('utf-8');
-                message = decoder.decode(message);
-            }
-
-            console.log("Mensaje recibido:", message);
-
             try {
-                // Parsear el mensaje JSON
                 const data = JSON.parse(message);
-                console.log("Mensaje JSON:", data);
+                console.log("Mensaje JSON recibido:", data);
 
-                if (data.type === 'startRound' && data.round === 1) {
-                    showFirstRound(data.targetPlayer);
-                }
-                if (data.type === 'roundInstruction') {
-                    handleRoundInstruction(data.message);
+                switch (data.type) {
+                    case 'gossipTask':
+                        showFirstRound(data.target);
+                        break;
+                    case 'roundInstruction':
+                        handleRoundInstruction(data.message);
+                        break;
+                    default:
+                        console.warn("Mensaje desconocido recibido:", data);
                 }
             } catch (error) {
                 console.error('Error al procesar el mensaje JSON:', error);
@@ -122,19 +116,20 @@
             console.log("Conexión WebSocket cerrada.");
         };
 
-        // Manejar instrucciones de Unity
-        function handleRoundInstruction(message) {
-            console.log("Instrucción de Unity:", message);
-            if (message === "startFirstRound") {
-                showFirstRound();
-            }
-        }
-
         // Mostrar la primera ronda
         function showFirstRound(targetPlayer) {
             logoContainer.style.display = 'none';
             chismeContainer.style.display = 'flex';
             chismePrompt.textContent = `Tienes que crear un chisme sobre ${targetPlayer}.`;
+        }
+
+        // Manejar instrucciones adicionales
+        function handleRoundInstruction(message) {
+            console.log("Instrucción de Unity:", message);
+            if (message === "startFirstRound") {
+                logoContainer.style.display = 'none';
+                chismeContainer.style.display = 'flex';
+            }
         }
 
         // Enviar el chisme al servidor
@@ -145,10 +140,13 @@
                 return;
             }
 
-            ws.send(JSON.stringify({
+            const message = JSON.stringify({
                 type: 'submitChisme',
                 chisme: chisme
-            }));
+            });
+
+            ws.send(message);
+            console.log("Mensaje enviado al servidor:", message);
 
             chismeInput.value = ''; // Limpiar el campo
             alert('¡Tu chisme ha sido enviado!');
