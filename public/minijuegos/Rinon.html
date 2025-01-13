@@ -7,149 +7,60 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-        .logo-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo {
-            width: 300px;
-            height: auto;
-        }
-        .instructions {
-            font-size: 1.2em;
-            color: #333;
-            margin-top: 20px;
             text-align: center;
+            margin: 0;
+            padding: 20px;
         }
-        .chisme-container {
+        #chismeContainer {
             display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            margin-top: 20px;
         }
-        .chisme-prompt {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-        }
-        .chisme-input {
+        textarea {
             width: 80%;
-            max-width: 500px;
-            padding: 10px;
-            font-size: 1em;
-            margin-bottom: 20px;
+            height: 100px;
+            margin-bottom: 10px;
         }
-        .submit-button {
+        button {
             padding: 10px 20px;
-            font-size: 1.2em;
-            background-color: #ff6347;
+            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
-        .submit-button:hover {
-            background-color: #e5533c;
-        }
     </style>
 </head>
 <body>
-    <!-- Logo del Minijuego -->
-    <div class="logo-container" id="logoContainer">
-        <img class="logo" src="https://example.com/rinon-logo.png" alt="Logo del Minijuego Rinon">
-        <p class="instructions">Esperando instrucciones desde Unity...</p>
-    </div>
-
-    <!-- Primera ronda -->
-    <div class="chisme-container" id="chismeContainer">
-        <p class="chisme-prompt" id="chismePrompt"></p>
-        <textarea class="chisme-input" id="chismeInput" placeholder="Escribe tu chisme aquí..."></textarea>
-        <button class="submit-button" id="submitChisme">Enviar Chisme</button>
+    <h1>Minijuego Rinon</h1>
+    <div id="chismeContainer">
+        <p>Escribe tu mensaje:</p>
+        <textarea id="playerMessage"></textarea><br>
+        <button id="sendMessage">Enviar</button>
     </div>
 
     <script>
-        const logoContainer = document.getElementById('logoContainer');
-        const chismeContainer = document.getElementById('chismeContainer');
-        const chismePrompt = document.getElementById('chismePrompt');
-        const chismeInput = document.getElementById('chismeInput');
-        const submitChisme = document.getElementById('submitChisme');
-
-        // Configuración del WebSocket
-        const ws = new WebSocket('wss://myserver-fjs8.onrender.com'); // Cambiar por la URL correcta del servidor
+        const ws = new WebSocket('wss://myserver-fjs8.onrender.com');
 
         ws.onopen = () => {
-            console.log("Conexión WebSocket establecida.");
+            console.log("WebSocket conectado.");
+            setTimeout(() => {
+                document.getElementById('chismeContainer').style.display = 'block';
+            }, 5000);
         };
 
         ws.onmessage = (event) => {
-            let message = event.data;
-            try {
-                const data = JSON.parse(message);
-                console.log("Mensaje JSON recibido:", data);
-
-                switch (data.type) {
-                    case 'gossipTask':
-                        showFirstRound(data.target);
-                        break;
-                    case 'roundInstruction':
-                        handleRoundInstruction(data.message);
-                        break;
-                    default:
-                        console.warn("Mensaje desconocido recibido:", data);
-                }
-            } catch (error) {
-                console.error('Error al procesar el mensaje JSON:', error);
-            }
+            console.log("Mensaje recibido:", event.data);
         };
 
-        ws.onclose = () => {
-            console.log("Conexión WebSocket cerrada.");
-        };
-
-        // Mostrar la primera ronda
-        function showFirstRound(targetPlayer) {
-            logoContainer.style.display = 'none';
-            chismeContainer.style.display = 'flex';
-            chismePrompt.textContent = `Tienes que crear un chisme sobre ${targetPlayer}.`;
-        }
-
-        // Manejar instrucciones adicionales
-        function handleRoundInstruction(message) {
-            console.log("Instrucción de Unity:", message);
-            if (message === "startFirstRound") {
-                logoContainer.style.display = 'none';
-                chismeContainer.style.display = 'flex';
+        document.getElementById('sendMessage').addEventListener('click', () => {
+            const message = document.getElementById('playerMessage').value.trim();
+            if (message) {
+                ws.send(JSON.stringify({ type: 'playerMessage', playerName: 'PlayerName', message }));
+                alert('Mensaje enviado.');
+                document.getElementById('playerMessage').value = '';
+            } else {
+                alert('Escribe un mensaje antes de enviar.');
             }
-        }
-
-        // Enviar el chisme al servidor
-        submitChisme.addEventListener('click', () => {
-            const chisme = chismeInput.value.trim();
-            if (chisme === '') {
-                alert('Por favor, escribe un chisme antes de enviar.');
-                return;
-            }
-
-            const message = JSON.stringify({
-                type: 'submitChisme',
-                chisme: chisme
-            });
-
-            ws.send(message);
-            console.log("Mensaje enviado al servidor:", message);
-
-            chismeInput.value = ''; // Limpiar el campo
-            alert('¡Tu chisme ha sido enviado!');
         });
     </script>
 </body>
